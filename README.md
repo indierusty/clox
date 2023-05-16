@@ -5,6 +5,13 @@ Bytecode Interpreter in C.
 Scanner => Compiler => Virtual Machine
 SourceCode -> **Scanner** -> Tokens -> **Compiler** -> BytecodeChunk -> **VM**
 
+**Sanning -> Parsing -> Compiling -> Executing**
+
+NOTE: In clox Parsing and Compiling done in one pass in compiler module 
+      which is good for simplicity for bad for optimization.
+
+TODO: separate Parsing and compiling for Optimization.
+
 ## Main Modules
 **scanner** => impl scanner **source -> tokens**.
 **compiler**=> impl compiler **tokens -> bytecode**.
