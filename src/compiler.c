@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "object.h"
 #include "chunk.h"
 #include "common.h"
 #include "compiler.h"
@@ -184,6 +185,12 @@ static void number() {
     emit_constant(NUMBER_VAL(value));
 }
 
+static void string() {
+    /// NOTE: The + 1 and - 2 parts trim the leading and trailing quotation marks
+    emit_constant(
+        OBJ_VAL(copy_string(parser.previous.start + 1, parser.previous.length - 2)));
+}
+
 static void unary() {
     // eg. -10 or !is_cool
     // 1. We evaluate the operand first which leaves its value on the stack.
@@ -220,7 +227,7 @@ ParseRule rules[] = {
   [TOKEN_LESS]          = {NULL,     binary, PREC_COMPARISON},
   [TOKEN_LESS_EQUAL]    = {NULL,     binary, PREC_COMPARISON},
   [TOKEN_IDENTIFIER]    = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_STRING]        = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_STRING]        = {string,   NULL,   PREC_NONE},
   [TOKEN_NUMBER]        = {number,   NULL,   PREC_NONE},
   [TOKEN_AND]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_CLASS]         = {NULL,     NULL,   PREC_NONE},

@@ -13,7 +13,9 @@ Bytecode Interpreter in C.
 ## Helper Modules
 * **chunk**   => impl data structure representating sequence of **bytecode** (chunk).
 * **memory**  => macros and functions for **dynamic memory management**.
-* **value**   => define structure to store **constant types**.
+* **value**   => define structure to store **constant value types**.
+* **object**  => define structure to store **dynamic value types**  e.g strings, clousers, function and clases
+* **table**   => impl **hash map** for various usage by compiler and vm.
 
 NOTE: In clox Parsing and Compiling done in one pass in compiler module 
       which is good for simplicity but bad for optimization.
