@@ -34,10 +34,12 @@ static void runtime_error(const char* format, ...) {
 void init_vm() {
     reset_stack();   
     vm.objects = NULL;
+    init_table(&vm.globals);
     init_table(&vm.strings);
 }
 
 void free_vm() {
+    free_table(&vm.globals);
     free_table(&vm.strings);
     free_objects();
 }
@@ -83,6 +85,10 @@ static inline Value read_constant() {
     return vm.chunk->constants.values[read_byte()];
 }
 
+static inline ObjString* read_string() {
+    return AS_STRING(read_constant());
+}
+
 static inline void print_stack() {
     printf("          ");
     for (Value* slot = vm.stack; slot < vm.stack_top; slot++) {
@@ -122,6 +128,40 @@ static InterpretResult run() {
             case OP_NIL:     push(NIL_VAL); break;
             case OP_TRUE:    push(BOOL_VAL(true)); break;
             case OP_FALSE:   push(BOOL_VAL(false)); break;
+            case OP_POP:     pop(); break;
+            case OP_GET_GLOBAL: {
+                // get the name of variable to read
+                ObjString* name = read_string();
+                // read the value of viriable to value;
+                Value value;
+                if (!table_get(&vm.globals, name, &value)) {
+                    runtime_error("Undefined variable '%s'", name->chars);
+                }
+                // push value onto stack
+                push(value);
+                break;
+            }
+            case OP_DEFINE_GLOBAL: {
+                ObjString* name = read_string();
+                // get the value from stack and store key-value in vm.globals
+                // NOTE: overwrites previous declaration of same global variable, hence we redefine globals
+                table_set(&vm.globals, name, peek(0));
+                pop();
+                break;
+            }
+            case OP_SET_GLOBAL: {
+                // get the name of variable to write
+                ObjString* name = read_string();
+                // read value from stack 'peek(0)' and set value to it
+                if (table_set(&vm.globals, name, peek(0))) {
+                    // if key/var_name wasn't present then
+                    table_delete(&vm.globals, name);
+                    runtime_error("Undefined variable '%s'", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                // NOTE: we don't pop() the value on stack as assignment in lox is expr 
+                break;
+            }
             case OP_EQUAL:   {
                 Value b = pop();
                 Value a = pop();

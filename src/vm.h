@@ -13,10 +13,12 @@ typedef struct {
   Value stack[STACK_MAX];
   /// points just past the top value on stack
   Value* stack_top; 
-  // hashset of every string helpful for == operator, STRING INTERNING  
-  // any string in this map guarenteed to be textually distinct from all strings.
+  /// store global variables, name and value as key-value; 
+  Table globals;
+  /// hashset of every string helpful for == operator, STRING INTERNING  
+  /// any string in this map guarenteed to be textually distinct from all strings.
   Table strings; 
-  // head of linked list of every object vm ever creats
+  /// head of linked list of every object vm ever creats
   Obj* objects; 
 } VM;
 
