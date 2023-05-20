@@ -86,6 +86,11 @@ static inline Value read_constant() {
     return vm.chunk->constants.values[read_byte()];
 }
 
+static inline uint16_t read_short() {
+    vm.ip += 2;
+    return (uint16_t)((vm.ip[-2] << 8) | vm.ip[-1]);
+}
+
 static inline ObjString* read_string() {
     return AS_STRING(read_constant());
 }
@@ -209,6 +214,20 @@ static InterpretResult run() {
             case OP_PRINT: {
                 print_value(pop());
                 printf("\n");
+                break;
+            }
+            case OP_JUMP: {
+                uint16_t offset = read_short();
+                vm.ip += offset;
+                break;
+            }
+            case OP_JUMP_IF_FALSE: {
+                // read the 16 bit offset and NOTE: also set ip two bytes ahead
+                uint16_t offset = read_short();
+                // if false then move ip to end of if block
+                if (is_falsey(peek(0))) vm.ip += offset;
+                // else ip is already 2 byte ahead which will 
+                // continue execution if block
                 break;
             }
             case OP_RETURN: {

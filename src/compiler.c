@@ -134,6 +134,13 @@ static void emit_bytes(uint8_t byte1, uint8_t byte2) {
     emit_byte(byte2);
 }
 
+static int emit_jump(uint8_t instruction) {
+    emit_byte(instruction); 
+    emit_byte(0xff);
+    emit_byte(0xff);
+    return current_chunk()->count - 2;
+}
+
 static void emit_return() {
     emit_byte(OP_RETURN);
 }
@@ -152,6 +159,20 @@ static void emit_constant(Value value) {
     /// add value to constant array of current chunk, then
     /// emit two byte = [OP_CONSTANT, INDEX_TO_CONSTANT]
     emit_bytes(OP_CONSTANT, make_constant(value));
+}
+
+static void patch_jump(int offset) {
+    // +2 to adjust for the bytecode for the jump offset itself.
+    int jump_len = current_chunk()->count - (offset + 2);
+
+    if (jump_len > UINT16_MAX) {
+        error("Too much code to jump over.");
+    }
+
+    /// write 16bit byte after JUMP instruction.
+    /// represent the number of bytes to jump in chunk if condition is false.
+    current_chunk()->code[offset] = (jump_len >> 8) & 0xff;
+    current_chunk()->code[offset + 1] = jump_len & 0xff;
 }
 
 static void init_compiler(Compiler* compiler) {
@@ -493,6 +514,28 @@ static void expression_statement() {
     emit_byte(OP_POP);
 }
 
+static void if_statement() {
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
+    expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    // if 'if' condition is falsey then goto else branch and pop expr on stack
+    int then_jump = emit_jump(OP_JUMP_IF_FALSE);
+    emit_byte(OP_POP);
+    statement();
+
+    // if 'if' condition is truthy then skip else branch
+    int else_jump = emit_jump(OP_JUMP);
+
+    patch_jump(then_jump);
+
+    // pop stack right before else branc
+    emit_byte(OP_POP);
+    if (match(TOKEN_ELSE)) statement();
+
+    patch_jump(else_jump);
+}
+
 static void print_statement() {
     expression();
     consume(TOKEN_SEMICOLON, "Expect ';' after value.");
@@ -547,6 +590,8 @@ static void declaration() {
 static void statement() {
     if (match(TOKEN_PRINT)) {
         print_statement();
+    } else if (match(TOKEN_IF)) {
+        if_statement();
     } else if (match(TOKEN_LEFT_BRACE)) {
         begin_scope();
         block();
